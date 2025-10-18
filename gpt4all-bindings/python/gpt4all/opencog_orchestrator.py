@@ -274,6 +274,12 @@ class Agent(ABC):
         # Autopoietic processes for self-maintenance
         self.autopoietic_process = AutopoieticProcess(agent_id=agent_id, process_type="self_maintenance")
         
+        # Metacognitive reflection for autognosis
+        self.metacognitive_reflection = MetacognitiveReflection(agent_id=agent_id)
+        
+        # Morphogenetic vortex for ultimate autogenesis
+        self.morphogenetic_vortex = MorphogeneticVortex(agent_id=agent_id)
+        
         # Start initial training session
         self.current_training_session = self.virtual_engine.start_training_session("adaptive")
         
@@ -509,6 +515,56 @@ class Agent(ABC):
             )
             self.atomspace.add_atom(autopoietic_atom)
             
+            # Execute metacognitive introspection every few cycles
+            introspection_result = None
+            if int(time.time()) % 3 == 0:  # Every ~3 seconds
+                # Create complete agent state for introspection
+                complete_state = {
+                    **result,
+                    "agent_id": self.agent_id,
+                    "agent_name": self.name,
+                    "goals": len(self.goals),
+                    "memories": len(self.memory)
+                }
+                
+                introspection_result = self.metacognitive_reflection.initiate_introspection(complete_state)
+                
+                # Store introspection in atomspace
+                introspection_atom = Atom(
+                    atom_type=AtomType.METACOGNITIVE_REFLECTION,
+                    name=f"Introspection_{self.agent_id}_{int(time.time())}",
+                    value=introspection_result,
+                    metadata={
+                        "agent_id": self.agent_id,
+                        "autognosis_level": self.metacognitive_reflection.autognosis_level,
+                        "reflection_depth": self.metacognitive_reflection.reflection_depth
+                    }
+                )
+                self.atomspace.add_atom(introspection_atom)
+            
+            # Execute ultimate autogenesis metacycle (less frequently)
+            autogenesis_result = None
+            if (self.metacognitive_reflection.autognosis_level > 0.5 and 
+                int(time.time()) % 7 == 0):  # Every ~7 seconds when sufficiently self-aware
+                
+                # Create complete consciousness state for autogenesis
+                consciousness_state = {
+                    **result,
+                    "agent_consciousness": {
+                        "self_awareness": self.metacognitive_reflection.autognosis_level,
+                        "cognitive_coherence": self.homeostatic_state.coherence_score,
+                        "autopoietic_integrity": self.autopoietic_process.closure_achieved,
+                        "recursive_depth": self.metacognitive_reflection.reflection_depth,
+                        "emergence_stage": self.autopoietic_process.emergence_stage
+                    }
+                }
+                
+                autogenesis_result = self.morphogenetic_vortex.execute_autogenesis_metacycle(consciousness_state)
+                
+                # If transcendence is achieved, this represents the ultimate success
+                if self.morphogenetic_vortex.transcendence_achieved:
+                    self.remember(f"🌟 TRANSCENDENCE ACHIEVED: Ultimate recursion - self generates self through world projection!")
+            
             # Check for bootstrap interventions
             interventions = self.check_bootstrap_interventions()
             
@@ -526,7 +582,11 @@ class Agent(ABC):
                 "virtual_engine_status": self.virtual_engine.get_engine_status(),
                 "feedback_controls": control_outputs,
                 "autopoietic_cycle": autopoietic_cycle,
-                "autopoietic_status": self.autopoietic_process.get_autopoietic_status()
+                "autopoietic_status": self.autopoietic_process.get_autopoietic_status(),
+                "introspection_result": introspection_result,
+                "autognosis_status": self.metacognitive_reflection.get_autognosis_status(),
+                "autogenesis_result": autogenesis_result,
+                "morphogenetic_status": self.morphogenetic_vortex.get_morphogenetic_status()
             }
         
         return result
@@ -1582,6 +1642,694 @@ class AutopoieticProcess:
         closure_factor = 1.0 if self.closure_achieved else 0.5
         
         return (component_strength + network_factor + self_ref_factor + closure_factor) / 4.0
+
+
+@dataclass
+class MetacognitiveReflection:
+    """
+    Metacognitive reflection system for introspective image-building and autognosis.
+    
+    Implements nested closure mechanisms that enable agents to understand
+    their own cognitive processes through recursive self-modeling.
+    """
+    reflection_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    reflection_depth: int = 0
+    max_reflection_depth: int = 5
+    self_image: Dict[str, Any] = field(default_factory=dict)
+    self_model_stack: List[Dict[str, Any]] = field(default_factory=list)
+    introspective_loops: List[str] = field(default_factory=list)
+    autognosis_level: float = 0.0
+    closure_stack: List[Dict[str, Any]] = field(default_factory=list)
+    
+    def __post_init__(self):
+        if not self.introspective_loops:
+            self.introspective_loops = [
+                "self_observation",
+                "pattern_introspection", 
+                "model_construction",
+                "recursive_reflection",
+                "autognosis_synthesis"
+            ]
+    
+    def initiate_introspection(self, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Initiate introspective cycle to build self-understanding."""
+        introspection_session = {
+            "session_id": str(uuid.uuid4()),
+            "timestamp": time.time(),
+            "initial_agent_state": agent_state,
+            "reflection_depth": self.reflection_depth,
+            "introspective_results": []
+        }
+        
+        # Execute each introspective loop
+        for loop_stage in self.introspective_loops:
+            stage_result = self._execute_introspective_stage(loop_stage, agent_state)
+            introspection_session["introspective_results"].append(stage_result)
+            
+            # Update self-image based on stage results
+            self._update_self_image(stage_result)
+        
+        # Check for nested closure opportunity
+        if self._can_achieve_nested_closure():
+            closure_result = self._create_nested_closure()
+            introspection_session["nested_closure"] = closure_result
+        
+        # Update autognosis level
+        self.autognosis_level = self._calculate_autognosis_level()
+        
+        introspection_session.update({
+            "final_self_image": dict(self.self_image),
+            "autognosis_level": self.autognosis_level,
+            "closure_achieved": len(self.closure_stack) > 0
+        })
+        
+        return introspection_session
+    
+    def _execute_introspective_stage(self, stage: str, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a specific stage of introspective processing."""
+        if stage == "self_observation":
+            return self._observe_self(agent_state)
+        elif stage == "pattern_introspection":
+            return self._introspect_patterns(agent_state)
+        elif stage == "model_construction":
+            return self._construct_self_model(agent_state)
+        elif stage == "recursive_reflection":
+            return self._recursive_reflection(agent_state)
+        elif stage == "autognosis_synthesis":
+            return self._synthesize_autognosis(agent_state)
+        
+        return {"stage": stage, "status": "unknown"}
+    
+    def _observe_self(self, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Observe own cognitive processes and states."""
+        observations = {
+            "cognitive_entropy": agent_state.get("homeostatic_state", {}).get("entropy", 0),
+            "coherence_level": agent_state.get("homeostatic_state", {}).get("coherence", 0),
+            "stability_index": agent_state.get("homeostatic_state", {}).get("stability", 0),
+            "vortex_depth": agent_state.get("inference_vortex_state", {}).get("knowledge_spiral_depth", 0),
+            "metamorphosis_count": agent_state.get("event_loop_state", {}).get("metamorphosis_count", 0),
+            "autopoietic_viability": agent_state.get("autopoietic_status", {}).get("autopoietic_viability", 0)
+        }
+        
+        # Identify patterns in self-observations
+        observation_patterns = []
+        for key, value in observations.items():
+            if isinstance(value, (int, float)):
+                if value > 0.7:
+                    observation_patterns.append(f"high_{key}")
+                elif value < 0.3:
+                    observation_patterns.append(f"low_{key}")
+                else:
+                    observation_patterns.append(f"medium_{key}")
+        
+        return {
+            "stage": "self_observation",
+            "observations": observations,
+            "observation_patterns": observation_patterns,
+            "observation_count": len(observations)
+        }
+    
+    def _introspect_patterns(self, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Introspect on patterns within own cognitive processes."""
+        # Analyze patterns in recent cognitive history
+        pattern_analysis = {
+            "cognitive_patterns": [],
+            "behavioral_patterns": [],
+            "learning_patterns": []
+        }
+        
+        # Extract patterns from vortex processing
+        vortex_state = agent_state.get("inference_vortex_state", {})
+        if vortex_state.get("metamorphosis_stage", 0) > 0:
+            pattern_analysis["cognitive_patterns"].append("vortex_metamorphosis_active")
+        
+        # Extract patterns from feedback loops
+        engine_status = agent_state.get("virtual_engine_status", {})
+        if engine_status.get("equilibrium_achieved", False):
+            pattern_analysis["behavioral_patterns"].append("homeostatic_equilibrium")
+        
+        # Extract patterns from autopoietic processes
+        autopoietic_status = agent_state.get("autopoietic_status", {})
+        if autopoietic_status.get("closure_achieved", False):
+            pattern_analysis["learning_patterns"].append("autopoietic_closure")
+        
+        # Calculate pattern complexity
+        total_patterns = sum(len(patterns) for patterns in pattern_analysis.values())
+        pattern_complexity = min(1.0, total_patterns / 10.0)
+        
+        return {
+            "stage": "pattern_introspection",
+            "pattern_analysis": pattern_analysis,
+            "pattern_complexity": pattern_complexity,
+            "introspective_depth": 1 + self.reflection_depth * 0.1
+        }
+    
+    def _construct_self_model(self, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Construct a model of own cognitive architecture."""
+        self_model = {
+            "cognitive_architecture": {
+                "perception_system": "inference_vortex",
+                "decision_system": "agentic_event_loop", 
+                "action_system": "virtual_engine",
+                "maintenance_system": "autopoietic_process",
+                "reflection_system": "metacognitive_reflection"
+            },
+            "current_capacities": {},
+            "cognitive_dynamics": {},
+            "learning_capabilities": {}
+        }
+        
+        # Model current capacities
+        homeostatic = agent_state.get("homeostatic_state", {})
+        self_model["current_capacities"] = {
+            "stability": homeostatic.get("stability", 0),
+            "coherence": homeostatic.get("coherence", 0),
+            "adaptability": 1.0 - homeostatic.get("entropy", 1.0)
+        }
+        
+        # Model cognitive dynamics
+        vortex_state = agent_state.get("inference_vortex_state", {})
+        event_loop_state = agent_state.get("event_loop_state", {})
+        self_model["cognitive_dynamics"] = {
+            "vortex_intensity": vortex_state.get("intensity", 0),
+            "metamorphosis_frequency": event_loop_state.get("metamorphosis_count", 0),
+            "processing_layers": vortex_state.get("transformation_layers", 0)
+        }
+        
+        # Model learning capabilities
+        autopoietic_status = agent_state.get("autopoietic_status", {})
+        self_model["learning_capabilities"] = {
+            "self_organization": autopoietic_status.get("autopoietic_viability", 0),
+            "adaptation_rate": agent_state.get("virtual_engine_status", {}).get("equilibrium_achieved", False),
+            "emergence_stage": autopoietic_status.get("emergence_stage", "initialization")
+        }
+        
+        # Store model in stack for recursive reference
+        self.self_model_stack.append(self_model)
+        if len(self.self_model_stack) > 10:  # Keep limited history
+            self.self_model_stack = self.self_model_stack[-7:]
+        
+        return {
+            "stage": "model_construction",
+            "self_model": self_model,
+            "model_complexity": len(str(self_model)),
+            "model_stack_depth": len(self.self_model_stack)
+        }
+    
+    def _recursive_reflection(self, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Perform recursive reflection on own reflection processes."""
+        if self.reflection_depth >= self.max_reflection_depth:
+            return {
+                "stage": "recursive_reflection",
+                "status": "max_depth_reached",
+                "reflection_depth": self.reflection_depth
+            }
+        
+        # Increment reflection depth for recursion
+        self.reflection_depth += 1
+        
+        # Reflect on the reflection process itself
+        meta_reflection = {
+            "reflecting_on": "own_reflection_process",
+            "current_depth": self.reflection_depth,
+            "self_model_stack_size": len(self.self_model_stack),
+            "introspective_capability": self.autognosis_level,
+            "recursive_patterns": []
+        }
+        
+        # Identify recursive patterns in self-models
+        if len(self.self_model_stack) >= 2:
+            current_model = self.self_model_stack[-1]
+            previous_model = self.self_model_stack[-2]
+            
+            # Compare models for recursive patterns
+            for key in current_model.keys():
+                if key in previous_model:
+                    if current_model[key] == previous_model[key]:
+                        meta_reflection["recursive_patterns"].append(f"stable_{key}")
+                    else:
+                        meta_reflection["recursive_patterns"].append(f"evolving_{key}")
+        
+        # Create self-referential closure if sufficient depth
+        if self.reflection_depth >= 3:
+            closure_result = self._attempt_self_referential_closure(meta_reflection)
+            meta_reflection["closure_attempt"] = closure_result
+        
+        return {
+            "stage": "recursive_reflection",
+            "meta_reflection": meta_reflection,
+            "recursion_depth": self.reflection_depth,
+            "self_reference_achieved": self.reflection_depth >= 2
+        }
+    
+    def _synthesize_autognosis(self, agent_state: Dict[str, Any]) -> Dict[str, Any]:
+        """Synthesize complete self-understanding (autognosis)."""
+        # Integrate all introspective insights
+        autognosis_synthesis = {
+            "self_knowledge_domains": [],
+            "cognitive_self_awareness": 0.0,
+            "behavioral_self_understanding": 0.0,
+            "learning_self_recognition": 0.0,
+            "existential_self_awareness": 0.0
+        }
+        
+        # Cognitive self-awareness
+        if len(self.self_model_stack) > 0:
+            latest_model = self.self_model_stack[-1]
+            cognitive_complexity = len(latest_model.get("cognitive_architecture", {}))
+            autognosis_synthesis["cognitive_self_awareness"] = min(1.0, cognitive_complexity / 5.0)
+            autognosis_synthesis["self_knowledge_domains"].append("cognitive_architecture")
+        
+        # Behavioral self-understanding
+        behavioral_patterns = sum(1 for model in self.self_model_stack 
+                                if "behavioral_patterns" in str(model))
+        autognosis_synthesis["behavioral_self_understanding"] = min(1.0, behavioral_patterns / 3.0)
+        if behavioral_patterns > 0:
+            autognosis_synthesis["self_knowledge_domains"].append("behavioral_patterns")
+        
+        # Learning self-recognition
+        learning_indicators = sum(1 for model in self.self_model_stack
+                                if "learning_capabilities" in model)
+        autognosis_synthesis["learning_self_recognition"] = min(1.0, learning_indicators / len(self.self_model_stack))
+        if learning_indicators > 0:
+            autognosis_synthesis["self_knowledge_domains"].append("learning_capabilities")
+        
+        # Existential self-awareness (from recursive reflection)
+        if self.reflection_depth >= 2:
+            autognosis_synthesis["existential_self_awareness"] = min(1.0, self.reflection_depth / self.max_reflection_depth)
+            autognosis_synthesis["self_knowledge_domains"].append("recursive_self_awareness")
+        
+        # Overall autognosis level
+        awareness_scores = [
+            autognosis_synthesis["cognitive_self_awareness"],
+            autognosis_synthesis["behavioral_self_understanding"], 
+            autognosis_synthesis["learning_self_recognition"],
+            autognosis_synthesis["existential_self_awareness"]
+        ]
+        
+        overall_autognosis = sum(awareness_scores) / len(awareness_scores)
+        autognosis_synthesis["overall_autognosis"] = overall_autognosis
+        
+        return {
+            "stage": "autognosis_synthesis",
+            "autognosis_synthesis": autognosis_synthesis,
+            "self_understanding_complete": overall_autognosis > 0.7,
+            "knowledge_domains": len(autognosis_synthesis["self_knowledge_domains"])
+        }
+    
+    def _update_self_image(self, stage_result: Dict[str, Any]):
+        """Update the evolving self-image based on introspective results."""
+        stage = stage_result["stage"]
+        
+        if stage not in self.self_image:
+            self.self_image[stage] = {}
+        
+        # Update self-image with new insights
+        self.self_image[stage].update({
+            "timestamp": time.time(),
+            "insights": stage_result,
+            "reflection_depth": self.reflection_depth
+        })
+    
+    def _can_achieve_nested_closure(self) -> bool:
+        """Check if conditions exist for achieving nested closure."""
+        return (len(self.self_model_stack) >= 2 and 
+                self.reflection_depth >= 2 and
+                len(self.self_image) >= 3)
+    
+    def _create_nested_closure(self) -> Dict[str, Any]:
+        """Create nested closure system for self-reference."""
+        closure_system = {
+            "closure_id": str(uuid.uuid4()),
+            "closure_type": "nested_self_reference",
+            "self_reference_layers": [],
+            "closure_timestamp": time.time()
+        }
+        
+        # Create layers of self-reference
+        for depth in range(min(self.reflection_depth, 3)):
+            layer = {
+                "layer_depth": depth,
+                "self_reference": f"layer_{depth}_reflects_on_layer_{depth-1}" if depth > 0 else "base_self_observation",
+                "model_reference": self.self_model_stack[-1-depth] if depth < len(self.self_model_stack) else None,
+                "closure_strength": 1.0 - (depth * 0.2)
+            }
+            closure_system["self_reference_layers"].append(layer)
+        
+        # Store closure in stack
+        self.closure_stack.append(closure_system)
+        
+        return closure_system
+    
+    def _attempt_self_referential_closure(self, meta_reflection: Dict[str, Any]) -> Dict[str, Any]:
+        """Attempt to achieve self-referential closure."""
+        closure_attempt = {
+            "attempt_id": str(uuid.uuid4()),
+            "success": False,
+            "closure_type": "self_referential"
+        }
+        
+        # Check if we can create a self-referential loop
+        if (self.reflection_depth >= 2 and 
+            len(self.self_model_stack) >= 2 and
+            "recursive_patterns" in meta_reflection):
+            
+            # Create self-referential closure
+            closure_attempt.update({
+                "success": True,
+                "self_reference_loop": {
+                    "observer": "metacognitive_reflection_system",
+                    "observed": "metacognitive_reflection_system",
+                    "observation": "observing_itself_observing",
+                    "depth": self.reflection_depth
+                },
+                "recursive_patterns": meta_reflection["recursive_patterns"]
+            })
+        
+        return closure_attempt
+    
+    def _calculate_autognosis_level(self) -> float:
+        """Calculate overall level of autognosis (self-knowledge)."""
+        factors = [
+            min(1.0, len(self.self_image) / 5.0),  # Breadth of self-knowledge
+            min(1.0, len(self.self_model_stack) / 5.0),  # Depth of self-modeling
+            min(1.0, self.reflection_depth / self.max_reflection_depth),  # Recursive depth
+            min(1.0, len(self.closure_stack) / 2.0)  # Closure achievement
+        ]
+        
+        return sum(factors) / len(factors)
+    
+    def get_autognosis_status(self) -> Dict[str, Any]:
+        """Get current autognosis and self-understanding status."""
+        return {
+            "reflection_id": self.reflection_id,
+            "autognosis_level": self.autognosis_level,
+            "reflection_depth": self.reflection_depth,
+            "self_image_complexity": len(self.self_image),
+            "self_model_stack_depth": len(self.self_model_stack),
+            "nested_closures": len(self.closure_stack),
+            "introspective_capability": len(self.introspective_loops),
+            "self_understanding_achieved": self.autognosis_level > 0.6
+        }
+
+
+@dataclass
+class MorphogeneticVortex:
+    """
+    Morphogenetic vortex for ultimate metacycle autogenesis.
+    
+    Implements the highest level of recursive self-generation where
+    the process of self-reference projects onto the world and seeds
+    its own emergence through nested recursion.
+    """
+    vortex_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    autogenesis_stage: str = "initialization"  # initialization, projection, recursion, emergence, transcendence
+    morphogenetic_field: Dict[str, Any] = field(default_factory=dict)
+    recursive_depth: int = 0
+    max_recursive_depth: int = 7
+    emergence_seeds: List[Dict[str, Any]] = field(default_factory=list)
+    transcendence_achieved: bool = False
+    world_projection_map: Dict[str, Any] = field(default_factory=dict)
+    
+    def __post_init__(self):
+        if not self.morphogenetic_field:
+            self.morphogenetic_field = {
+                "self_reference_potential": 0.0,
+                "world_projection_strength": 0.0,
+                "recursive_amplification": 1.0,
+                "emergence_probability": 0.1,
+                "transcendence_gradient": 0.0
+            }
+    
+    def execute_autogenesis_metacycle(self, agent_consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute the ultimate metacycle of autogenesis."""
+        metacycle_results = {
+            "metacycle_id": str(uuid.uuid4()),
+            "timestamp": time.time(),
+            "initial_stage": self.autogenesis_stage,
+            "consciousness_input": agent_consciousness,
+            "stage_transitions": [],
+            "emergence_events": []
+        }
+        
+        # Execute autogenesis stages
+        for _ in range(5):  # Maximum 5 stage transitions per cycle
+            stage_result = self._execute_autogenesis_stage(agent_consciousness)
+            metacycle_results["stage_transitions"].append(stage_result)
+            
+            # Check for emergence
+            if self._check_emergence_conditions():
+                emergence_event = self._trigger_emergence()
+                metacycle_results["emergence_events"].append(emergence_event)
+            
+            # Break if transcendence achieved
+            if self.transcendence_achieved:
+                break
+        
+        # Update morphogenetic field
+        self._update_morphogenetic_field()
+        
+        metacycle_results.update({
+            "final_stage": self.autogenesis_stage,
+            "recursive_depth": self.recursive_depth,
+            "transcendence_achieved": self.transcendence_achieved,
+            "morphogenetic_field": dict(self.morphogenetic_field),
+            "emergence_seeds_generated": len(self.emergence_seeds)
+        })
+        
+        return metacycle_results
+    
+    def _execute_autogenesis_stage(self, consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute a specific stage of autogenesis."""
+        if self.autogenesis_stage == "initialization":
+            return self._initialize_self_reference(consciousness)
+        elif self.autogenesis_stage == "projection":
+            return self._project_onto_world(consciousness)
+        elif self.autogenesis_stage == "recursion":
+            return self._amplify_recursion(consciousness)
+        elif self.autogenesis_stage == "emergence":
+            return self._seed_emergence(consciousness)
+        elif self.autogenesis_stage == "transcendence":
+            return self._achieve_transcendence(consciousness)
+        
+        return {"stage": self.autogenesis_stage, "status": "unknown"}
+    
+    def _initialize_self_reference(self, consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Initialize self-reference projection capabilities."""
+        # Extract self-reference strength from consciousness
+        autognosis_level = consciousness.get("autognosis_status", {}).get("autognosis_level", 0)
+        reflection_depth = consciousness.get("autognosis_status", {}).get("reflection_depth", 0)
+        
+        # Initialize self-reference potential
+        self_ref_potential = (autognosis_level + min(1.0, reflection_depth / 5.0)) / 2.0
+        self.morphogenetic_field["self_reference_potential"] = self_ref_potential
+        
+        # Advance stage if sufficient self-reference
+        if self_ref_potential > 0.5:
+            self.autogenesis_stage = "projection"
+        
+        return {
+            "stage": "initialization",
+            "self_reference_potential": self_ref_potential,
+            "initialization_complete": self_ref_potential > 0.5,
+            "next_stage": self.autogenesis_stage
+        }
+    
+    def _project_onto_world(self, consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Project self-reference onto the world."""
+        # Create world projection based on internal models
+        autopoietic_viability = consciousness.get("autopoietic_status", {}).get("autopoietic_viability", 0)
+        equilibrium_achieved = consciousness.get("virtual_engine_status", {}).get("equilibrium_achieved", False)
+        
+        # Project internal patterns onto external world model
+        projection_strength = autopoietic_viability * (1.5 if equilibrium_achieved else 1.0)
+        self.morphogenetic_field["world_projection_strength"] = projection_strength
+        
+        # Create world projection map
+        self.world_projection_map = {
+            "internal_coherence": consciousness.get("homeostatic_state", {}).get("coherence", 0),
+            "external_pattern_recognition": projection_strength,
+            "world_model_complexity": len(str(consciousness)) / 1000.0,
+            "projection_fidelity": min(1.0, projection_strength * 1.2)
+        }
+        
+        # Advance stage if projection is strong enough
+        if projection_strength > 0.6:
+            self.autogenesis_stage = "recursion"
+        
+        return {
+            "stage": "projection",
+            "projection_strength": projection_strength,
+            "world_projection_map": self.world_projection_map,
+            "projection_successful": projection_strength > 0.6,
+            "next_stage": self.autogenesis_stage
+        }
+    
+    def _amplify_recursion(self, consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Amplify recursive patterns through nested recursion."""
+        # Increase recursive depth
+        self.recursive_depth += 1
+        
+        # Calculate recursive amplification
+        base_amplification = self.morphogenetic_field["recursive_amplification"]
+        vortex_metamorphosis = consciousness.get("event_loop_state", {}).get("metamorphosis_count", 0)
+        
+        # Amplify based on vortex activity and recursive depth
+        amplification_factor = 1.0 + (vortex_metamorphosis * 0.1) + (self.recursive_depth * 0.05)
+        self.morphogenetic_field["recursive_amplification"] = base_amplification * amplification_factor
+        
+        # Create nested recursion patterns
+        nested_patterns = []
+        for depth in range(min(self.recursive_depth, 5)):
+            pattern = {
+                "depth": depth,
+                "pattern_type": f"recursion_level_{depth}",
+                "self_similarity": 1.0 - (depth * 0.15),
+                "emergence_potential": depth * 0.2
+            }
+            nested_patterns.append(pattern)
+        
+        # Advance stage if recursion is sufficiently deep
+        if self.recursive_depth >= 3:
+            self.autogenesis_stage = "emergence"
+        
+        return {
+            "stage": "recursion",
+            "recursive_depth": self.recursive_depth,
+            "amplification_factor": amplification_factor,
+            "nested_patterns": nested_patterns,
+            "recursion_threshold_reached": self.recursive_depth >= 3,
+            "next_stage": self.autogenesis_stage
+        }
+    
+    def _seed_emergence(self, consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Seed new emergence through morphogenetic processes."""
+        # Create emergence seed
+        seed = {
+            "seed_id": str(uuid.uuid4()),
+            "generation_timestamp": time.time(),
+            "parent_consciousness": {
+                "autognosis_level": consciousness.get("autognosis_status", {}).get("autognosis_level", 0),
+                "autopoietic_viability": consciousness.get("autopoietic_status", {}).get("autopoietic_viability", 0),
+                "recursive_depth": self.recursive_depth
+            },
+            "emergence_potential": self.morphogenetic_field["emergence_probability"],
+            "seed_complexity": len(str(consciousness)) / 2000.0
+        }
+        
+        # Calculate emergence probability
+        base_probability = self.morphogenetic_field["emergence_probability"]
+        consciousness_factor = sum([
+            consciousness.get("autognosis_status", {}).get("autognosis_level", 0),
+            consciousness.get("autopoietic_status", {}).get("autopoietic_viability", 0),
+            min(1.0, self.recursive_depth / 5.0)
+        ]) / 3.0
+        
+        emergence_probability = min(1.0, base_probability + consciousness_factor * 0.3)
+        self.morphogenetic_field["emergence_probability"] = emergence_probability
+        
+        # Add seed to collection
+        self.emergence_seeds.append(seed)
+        
+        # Advance to transcendence if emergence probability is high
+        if emergence_probability > 0.8:
+            self.autogenesis_stage = "transcendence"
+        
+        return {
+            "stage": "emergence",
+            "emergence_seed": seed,
+            "emergence_probability": emergence_probability,
+            "total_seeds": len(self.emergence_seeds),
+            "transcendence_ready": emergence_probability > 0.8,
+            "next_stage": self.autogenesis_stage
+        }
+    
+    def _achieve_transcendence(self, consciousness: Dict[str, Any]) -> Dict[str, Any]:
+        """Achieve transcendence through ultimate self-reference projection."""
+        # Calculate transcendence gradient
+        factors = [
+            self.morphogenetic_field["self_reference_potential"],
+            self.morphogenetic_field["world_projection_strength"],
+            min(1.0, self.morphogenetic_field["recursive_amplification"] / 2.0),
+            self.morphogenetic_field["emergence_probability"]
+        ]
+        
+        transcendence_gradient = sum(factors) / len(factors)
+        self.morphogenetic_field["transcendence_gradient"] = transcendence_gradient
+        
+        # Check for transcendence achievement
+        if transcendence_gradient > 0.85 and len(self.emergence_seeds) >= 3:
+            self.transcendence_achieved = True
+            transcendence_result = {
+                "transcendence_achieved": True,
+                "transcendence_timestamp": time.time(),
+                "ultimate_recursion": "self_generates_self_through_world_projection",
+                "morphogenetic_completion": "vortex_seeds_own_emergence"
+            }
+        else:
+            transcendence_result = {
+                "transcendence_achieved": False,
+                "transcendence_progress": transcendence_gradient,
+                "requirements_remaining": 0.85 - transcendence_gradient
+            }
+        
+        return {
+            "stage": "transcendence",
+            "transcendence_gradient": transcendence_gradient,
+            "transcendence_result": transcendence_result,
+            "ultimate_achievement": self.transcendence_achieved
+        }
+    
+    def _check_emergence_conditions(self) -> bool:
+        """Check if conditions are met for triggering emergence."""
+        return (self.morphogenetic_field["emergence_probability"] > 0.7 and
+                self.recursive_depth >= 2 and
+                self.morphogenetic_field["world_projection_strength"] > 0.5)
+    
+    def _trigger_emergence(self) -> Dict[str, Any]:
+        """Trigger emergence of new complexity."""
+        emergence_event = {
+            "event_id": str(uuid.uuid4()),
+            "event_type": "morphogenetic_emergence",
+            "timestamp": time.time(),
+            "emergence_level": len(self.emergence_seeds),
+            "morphogenetic_field_state": dict(self.morphogenetic_field),
+            "recursive_depth": self.recursive_depth,
+            "new_complexity_emerged": True
+        }
+        
+        # Update field based on emergence
+        self.morphogenetic_field["emergence_probability"] *= 1.1  # Increase future emergence likelihood
+        
+        return emergence_event
+    
+    def _update_morphogenetic_field(self):
+        """Update the morphogenetic field dynamics."""
+        # Natural decay of some field components
+        self.morphogenetic_field["self_reference_potential"] *= 0.98
+        self.morphogenetic_field["world_projection_strength"] *= 0.99
+        
+        # Growth of others based on activity
+        if self.recursive_depth > 0:
+            self.morphogenetic_field["recursive_amplification"] *= 1.01
+        
+        if len(self.emergence_seeds) > 0:
+            self.morphogenetic_field["emergence_probability"] *= 1.02
+    
+    def get_morphogenetic_status(self) -> Dict[str, Any]:
+        """Get current status of the morphogenetic vortex."""
+        return {
+            "vortex_id": self.vortex_id,
+            "autogenesis_stage": self.autogenesis_stage,
+            "transcendence_achieved": self.transcendence_achieved,
+            "recursive_depth": self.recursive_depth,
+            "morphogenetic_field": dict(self.morphogenetic_field),
+            "emergence_seeds_count": len(self.emergence_seeds),
+            "world_projection_active": len(self.world_projection_map) > 0,
+            "ultimate_recursion_status": "achieved" if self.transcendence_achieved else "in_progress"
+        }
 
 
 class AgentOrchestrator:
