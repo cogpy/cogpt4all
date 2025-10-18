@@ -268,6 +268,15 @@ class Agent(ABC):
         self.agentic_event_loop = AgenticEventLoop(agent_id=agent_id)
         self.agentic_event_loop.add_vortex(self.inference_vortex)
         
+        # Virtual engine for feedback loops and training
+        self.virtual_engine = VirtualEngine(agent_id=agent_id)
+        
+        # Autopoietic processes for self-maintenance
+        self.autopoietic_process = AutopoieticProcess(agent_id=agent_id, process_type="self_maintenance")
+        
+        # Start initial training session
+        self.current_training_session = self.virtual_engine.start_training_session("adaptive")
+        
         # Register self in atomspace
         agent_atom = Atom(
             atom_type=AtomType.AGENT,
@@ -471,6 +480,35 @@ class Agent(ABC):
             # Update homeostatic state based on action
             self.update_homeostatic_state(action)
             
+            # Process homeostatic measurements through virtual engine
+            measurements = {
+                "coherence": self.homeostatic_state.coherence_score,
+                "stability": self.homeostatic_state.stability_index,
+                "entropy": self.homeostatic_state.entropy_level,
+                "learning_rate": self.cognitive_variance
+            }
+            
+            control_outputs = self.virtual_engine.update_measurements(measurements)
+            
+            # Apply control outputs to adjust agent behavior
+            self._apply_feedback_controls(control_outputs)
+            
+            # Execute autopoietic cycle for self-maintenance
+            autopoietic_cycle = self.autopoietic_process.execute_autopoietic_cycle()
+            
+            # Store autopoietic data in atomspace
+            autopoietic_atom = Atom(
+                atom_type=AtomType.AUTOPOIETIC_PROCESS,
+                name=f"AutopoieticCycle_{self.agent_id}_{int(time.time())}",
+                value=autopoietic_cycle,
+                metadata={
+                    "agent_id": self.agent_id,
+                    "emergence_stage": self.autopoietic_process.emergence_stage,
+                    "closure_achieved": self.autopoietic_process.closure_achieved
+                }
+            )
+            self.atomspace.add_atom(autopoietic_atom)
+            
             # Check for bootstrap interventions
             interventions = self.check_bootstrap_interventions()
             
@@ -484,10 +522,55 @@ class Agent(ABC):
                 "bootstrap_interventions": interventions,
                 "vortex_cycle": vortex_cycle,
                 "inference_vortex_state": self.inference_vortex.get_vortex_state(),
-                "event_loop_state": self.agentic_event_loop.get_loop_status()
+                "event_loop_state": self.agentic_event_loop.get_loop_status(),
+                "virtual_engine_status": self.virtual_engine.get_engine_status(),
+                "feedback_controls": control_outputs,
+                "autopoietic_cycle": autopoietic_cycle,
+                "autopoietic_status": self.autopoietic_process.get_autopoietic_status()
             }
         
         return result
+    
+    def _apply_feedback_controls(self, control_outputs: Dict[str, float]):
+        """Apply feedback control outputs to adjust agent behavior."""
+        for control_name, control_value in control_outputs.items():
+            if control_name == "coherence":
+                # Positive control value improves coherence
+                if control_value > 0:
+                    self.homeostatic_state.coherence_score = min(1.0, 
+                        self.homeostatic_state.coherence_score + control_value * 0.01)
+                    
+            elif control_name == "stability":
+                # Positive control value improves stability
+                if control_value > 0:
+                    self.homeostatic_state.stability_index = min(1.0,
+                        self.homeostatic_state.stability_index + control_value * 0.01)
+                    
+            elif control_name == "entropy":
+                # Positive control value reduces entropy (entropy target is low)
+                if control_value > 0:
+                    self.homeostatic_state.entropy_level = max(0.0,
+                        self.homeostatic_state.entropy_level - control_value * 0.01)
+                    
+            elif control_name == "learning_rate":
+                # Adjust cognitive variance (learning rate)
+                if control_value > 0:
+                    self.cognitive_variance = min(1.0, self.cognitive_variance + control_value * 0.005)
+                else:
+                    self.cognitive_variance = max(0.0, self.cognitive_variance + control_value * 0.005)
+        
+        # Store feedback loop data in atomspace
+        feedback_atom = Atom(
+            atom_type=AtomType.FEEDBACK_LOOP,
+            name=f"FeedbackControl_{self.agent_id}_{int(time.time())}",
+            value=control_outputs,
+            metadata={
+                "agent_id": self.agent_id,
+                "timestamp": time.time(),
+                "equilibrium_achieved": self.virtual_engine.equilibrium_state
+            }
+        )
+        self.atomspace.add_atom(feedback_atom)
 
 
 class ChatAgent(Agent):
@@ -903,6 +986,602 @@ class AgenticEventLoop:
             "queued_events": len(self.event_queue),
             "cycle_frequency": self.cycle_frequency
         }
+
+
+@dataclass
+class FeedbackLoop:
+    """
+    Virtual engine feedback loop for training and homeostasis achievement.
+    
+    Implements adaptive learning mechanisms that use feedback to achieve
+    and maintain equilibrium states through continuous adjustment.
+    """
+    loop_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    loop_type: str = "homeostatic"  # homeostatic, learning, adaptive, equilibrium
+    target_value: float = 1.0
+    current_value: float = 0.5
+    error_history: List[float] = field(default_factory=list)
+    control_output_history: List[float] = field(default_factory=list)
+    
+    # PID controller parameters for sophisticated feedback control
+    kp: float = 1.0  # Proportional gain
+    ki: float = 0.1  # Integral gain  
+    kd: float = 0.05  # Derivative gain
+    
+    integral_sum: float = 0.0
+    previous_error: float = 0.0
+    learning_rate: float = 0.01
+    adaptation_factor: float = 0.05
+    
+    def update_feedback(self, current_measurement: float, dt: float = 1.0) -> float:
+        """Update feedback loop with current measurement and return control output."""
+        self.current_value = current_measurement
+        error = self.target_value - self.current_value
+        
+        # Store error history
+        self.error_history.append(error)
+        if len(self.error_history) > 100:  # Keep limited history
+            self.error_history = self.error_history[-50:]
+        
+        # PID control calculation
+        proportional = self.kp * error
+        
+        # Integral term (accumulated error over time)
+        self.integral_sum += error * dt
+        integral = self.ki * self.integral_sum
+        
+        # Derivative term (rate of error change)
+        derivative = self.kd * (error - self.previous_error) / dt if dt > 0 else 0
+        self.previous_error = error
+        
+        # Combined control output
+        control_output = proportional + integral + derivative
+        
+        # Apply adaptation based on loop type
+        if self.loop_type == "learning":
+            control_output = self._apply_learning_adaptation(control_output)
+        elif self.loop_type == "adaptive":
+            control_output = self._apply_adaptive_modification(control_output)
+        elif self.loop_type == "equilibrium":
+            control_output = self._apply_equilibrium_maintenance(control_output)
+        
+        # Store control output history
+        self.control_output_history.append(control_output)
+        if len(self.control_output_history) > 100:
+            self.control_output_history = self.control_output_history[-50:]
+        
+        return control_output
+    
+    def _apply_learning_adaptation(self, control_output: float) -> float:
+        """Apply learning-based adaptation to control output."""
+        # Adjust gains based on error patterns
+        if len(self.error_history) >= 5:
+            recent_errors = self.error_history[-5:]
+            error_variance = sum((e - sum(recent_errors)/len(recent_errors))**2 for e in recent_errors) / len(recent_errors)
+            
+            # If high variance, increase derivative gain to reduce oscillation
+            if error_variance > 0.1:
+                self.kd = min(0.2, self.kd + self.learning_rate)
+            else:
+                self.kd = max(0.01, self.kd - self.learning_rate * 0.5)
+        
+        return control_output
+    
+    def _apply_adaptive_modification(self, control_output: float) -> float:
+        """Apply adaptive modification based on system behavior."""
+        # Adapt proportional gain based on error magnitude
+        if abs(self.previous_error) > 0.5:
+            self.kp = min(2.0, self.kp + self.adaptation_factor)
+        elif abs(self.previous_error) < 0.1:
+            self.kp = max(0.5, self.kp - self.adaptation_factor * 0.5)
+        
+        return control_output
+    
+    def _apply_equilibrium_maintenance(self, control_output: float) -> float:
+        """Apply equilibrium maintenance adjustments."""
+        # If close to target, reduce control effort to prevent overshoot
+        if abs(self.previous_error) < 0.05:
+            control_output *= 0.8
+        
+        # Reset integral sum if crossing setpoint to prevent windup
+        if len(self.error_history) >= 2:
+            if (self.error_history[-1] * self.error_history[-2]) < 0:  # Sign change
+                self.integral_sum *= 0.5
+        
+        return control_output
+    
+    def set_target(self, new_target: float):
+        """Set new target value for the feedback loop."""
+        self.target_value = new_target
+        # Reset integral sum when target changes
+        self.integral_sum = 0.0
+    
+    def get_loop_performance(self) -> Dict[str, Any]:
+        """Get performance metrics of the feedback loop."""
+        if not self.error_history:
+            return {"status": "no_data"}
+        
+        recent_errors = self.error_history[-10:] if len(self.error_history) >= 10 else self.error_history
+        
+        return {
+            "loop_id": self.loop_id,
+            "loop_type": self.loop_type,
+            "current_error": self.error_history[-1] if self.error_history else 0,
+            "mean_error": sum(recent_errors) / len(recent_errors),
+            "error_variance": sum((e - sum(recent_errors)/len(recent_errors))**2 for e in recent_errors) / len(recent_errors),
+            "steady_state_achieved": abs(self.error_history[-1]) < 0.05 if self.error_history else False,
+            "oscillation_detected": self._detect_oscillation(),
+            "gains": {"kp": self.kp, "ki": self.ki, "kd": self.kd}
+        }
+    
+    def _detect_oscillation(self) -> bool:
+        """Detect if the system is oscillating."""
+        if len(self.error_history) < 6:
+            return False
+        
+        recent_errors = self.error_history[-6:]
+        sign_changes = sum(1 for i in range(1, len(recent_errors)) 
+                          if recent_errors[i] * recent_errors[i-1] < 0)
+        
+        return sign_changes >= 3  # Oscillating if 3+ sign changes in 6 samples
+
+
+@dataclass
+class VirtualEngine:
+    """
+    Virtual engine that orchestrates feedback loops for training and homeostasis.
+    
+    Manages multiple feedback loops to achieve complex system regulation
+    and continuous improvement through adaptive learning.
+    """
+    engine_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    feedback_loops: Dict[str, FeedbackLoop] = field(default_factory=dict)
+    training_sessions: List[Dict[str, Any]] = field(default_factory=list)
+    homeostatic_targets: Dict[str, float] = field(default_factory=dict)
+    equilibrium_state: bool = False
+    last_update: float = field(default_factory=time.time)
+    
+    def __post_init__(self):
+        # Initialize default homeostatic targets
+        if not self.homeostatic_targets:
+            self.homeostatic_targets = {
+                "coherence": 0.8,
+                "stability": 0.9,
+                "entropy": 0.3,  # Lower is better for entropy
+                "learning_rate": 0.7
+            }
+        
+        # Create feedback loops for each target
+        for target_name, target_value in self.homeostatic_targets.items():
+            loop_type = "equilibrium" if target_name in ["coherence", "stability"] else "homeostatic"
+            self.feedback_loops[target_name] = FeedbackLoop(
+                agent_id=self.agent_id,
+                loop_type=loop_type,
+                target_value=target_value
+            )
+    
+    def update_measurements(self, measurements: Dict[str, float]) -> Dict[str, float]:
+        """Update all feedback loops with current measurements."""
+        dt = time.time() - self.last_update
+        self.last_update = time.time()
+        
+        control_outputs = {}
+        
+        for measurement_name, measurement_value in measurements.items():
+            if measurement_name in self.feedback_loops:
+                loop = self.feedback_loops[measurement_name]
+                control_output = loop.update_feedback(measurement_value, dt)
+                control_outputs[measurement_name] = control_output
+        
+        # Check for equilibrium achievement
+        self.equilibrium_state = self._check_equilibrium_state()
+        
+        return control_outputs
+    
+    def _check_equilibrium_state(self) -> bool:
+        """Check if all feedback loops have achieved equilibrium."""
+        if not self.feedback_loops:
+            return False
+        
+        equilibrium_count = 0
+        for loop in self.feedback_loops.values():
+            performance = loop.get_loop_performance()
+            if performance.get("steady_state_achieved", False) and not performance.get("oscillation_detected", True):
+                equilibrium_count += 1
+        
+        # Equilibrium achieved if 80% of loops are stable
+        return equilibrium_count >= len(self.feedback_loops) * 0.8
+    
+    def start_training_session(self, session_type: str = "adaptive") -> str:
+        """Start a new training session."""
+        session_id = str(uuid.uuid4())
+        
+        session = {
+            "session_id": session_id,
+            "session_type": session_type,
+            "start_time": time.time(),
+            "initial_state": self._capture_current_state(),
+            "adaptations_made": [],
+            "performance_metrics": []
+        }
+        
+        self.training_sessions.append(session)
+        
+        # Adjust feedback loops for training
+        if session_type == "adaptive":
+            for loop in self.feedback_loops.values():
+                loop.learning_rate *= 1.5  # Increase learning rate for training
+        
+        return session_id
+    
+    def _capture_current_state(self) -> Dict[str, Any]:
+        """Capture current state of all feedback loops."""
+        state = {}
+        for name, loop in self.feedback_loops.items():
+            state[name] = {
+                "current_value": loop.current_value,
+                "target_value": loop.target_value,
+                "gains": {"kp": loop.kp, "ki": loop.ki, "kd": loop.kd},
+                "error": loop.previous_error
+            }
+        return state
+    
+    def end_training_session(self, session_id: str) -> Dict[str, Any]:
+        """End a training session and return results."""
+        session = None
+        for s in self.training_sessions:
+            if s["session_id"] == session_id:
+                session = s
+                break
+        
+        if not session:
+            return {"error": "Session not found"}
+        
+        # Capture final state
+        final_state = self._capture_current_state()
+        session["end_time"] = time.time()
+        session["final_state"] = final_state
+        session["duration"] = session["end_time"] - session["start_time"]
+        
+        # Calculate improvements
+        improvements = {}
+        for name in self.feedback_loops.keys():
+            initial_error = abs(session["initial_state"][name]["error"])
+            final_error = abs(final_state[name]["error"])
+            improvements[name] = (initial_error - final_error) / initial_error if initial_error > 0 else 0
+        
+        session["improvements"] = improvements
+        
+        # Reset learning rates
+        for loop in self.feedback_loops.values():
+            loop.learning_rate = 0.01
+        
+        return session
+    
+    def get_engine_status(self) -> Dict[str, Any]:
+        """Get current status of the virtual engine."""
+        loop_performances = {}
+        for name, loop in self.feedback_loops.items():
+            loop_performances[name] = loop.get_loop_performance()
+        
+        return {
+            "engine_id": self.engine_id,
+            "equilibrium_achieved": self.equilibrium_state,
+            "active_feedback_loops": len(self.feedback_loops),
+            "training_sessions_completed": len(self.training_sessions),
+            "loop_performances": loop_performances,
+            "homeostatic_targets": self.homeostatic_targets,
+            "last_update": self.last_update
+        }
+
+
+@dataclass
+class AutopoieticProcess:
+    """
+    Autopoietic process for self-maintenance and self-organization.
+    
+    Implements self-creating and self-maintaining systems that can
+    project homeostatic images and enable feedforward prediction.
+    """
+    process_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    process_type: str = "self_maintenance"  # self_maintenance, self_organization, self_reproduction
+    components: Dict[str, Any] = field(default_factory=dict)
+    organization_pattern: List[str] = field(default_factory=list)
+    autopoietic_network: Dict[str, List[str]] = field(default_factory=dict)
+    closure_achieved: bool = False
+    self_reference_depth: int = 0
+    emergence_stage: str = "initialization"  # initialization, organization, closure, autopoiesis
+    
+    def __post_init__(self):
+        if not self.organization_pattern:
+            self.organization_pattern = [
+                "component_production",
+                "network_formation", 
+                "boundary_establishment",
+                "self_reference_creation",
+                "autopoietic_closure"
+            ]
+        
+        # Initialize basic components for self-maintenance
+        if not self.components:
+            self.components = {
+                "catalyst": {"activity": 0.5, "stability": 0.8},
+                "substrate": {"availability": 1.0, "quality": 0.7},
+                "product": {"concentration": 0.3, "viability": 0.6},
+                "boundary": {"integrity": 0.9, "permeability": 0.4}
+            }
+    
+    def execute_autopoietic_cycle(self) -> Dict[str, Any]:
+        """Execute one complete autopoietic cycle."""
+        cycle_results = {
+            "cycle_id": str(uuid.uuid4()),
+            "timestamp": time.time(),
+            "initial_state": dict(self.components),
+            "operations_performed": [],
+            "emergence_transitions": []
+        }
+        
+        # Execute each stage of organization pattern
+        for stage in self.organization_pattern:
+            operation_result = self._execute_stage(stage)
+            cycle_results["operations_performed"].append(operation_result)
+            
+            # Check for emergence transitions
+            if self._check_emergence_transition():
+                transition = self._advance_emergence_stage()
+                cycle_results["emergence_transitions"].append(transition)
+        
+        # Update autopoietic network
+        self._update_autopoietic_network()
+        
+        # Check for autopoietic closure
+        self.closure_achieved = self._check_autopoietic_closure()
+        
+        cycle_results.update({
+            "final_state": dict(self.components),
+            "closure_achieved": self.closure_achieved,
+            "emergence_stage": self.emergence_stage,
+            "self_reference_depth": self.self_reference_depth,
+            "network_connectivity": len(self.autopoietic_network)
+        })
+        
+        return cycle_results
+    
+    def _execute_stage(self, stage: str) -> Dict[str, Any]:
+        """Execute a specific stage of the autopoietic process."""
+        if stage == "component_production":
+            return self._produce_components()
+        elif stage == "network_formation":
+            return self._form_network_connections()
+        elif stage == "boundary_establishment":
+            return self._establish_boundaries()
+        elif stage == "self_reference_creation":
+            return self._create_self_reference()
+        elif stage == "autopoietic_closure":
+            return self._achieve_closure()
+        
+        return {"stage": stage, "status": "unknown"}
+    
+    def _produce_components(self) -> Dict[str, Any]:
+        """Produce new components through catalytic processes."""
+        # Catalyst transforms substrate into product
+        catalyst_activity = self.components["catalyst"]["activity"]
+        substrate_availability = self.components["substrate"]["availability"]
+        
+        production_rate = catalyst_activity * substrate_availability * 0.1
+        
+        # Update component concentrations
+        self.components["product"]["concentration"] += production_rate
+        self.components["substrate"]["availability"] -= production_rate * 0.5
+        
+        # Catalyst may degrade slightly
+        self.components["catalyst"]["stability"] -= 0.01
+        
+        # Regenerate catalyst if product concentration is sufficient
+        if self.components["product"]["concentration"] > 0.5:
+            self.components["catalyst"]["activity"] = min(1.0, 
+                self.components["catalyst"]["activity"] + 0.05)
+        
+        return {
+            "stage": "component_production",
+            "production_rate": production_rate,
+            "catalyst_activity": catalyst_activity,
+            "new_product_level": self.components["product"]["concentration"]
+        }
+    
+    def _form_network_connections(self) -> Dict[str, Any]:
+        """Form network connections between components."""
+        connections_formed = 0
+        
+        # Create connections based on component compatibility
+        component_names = list(self.components.keys())
+        for i, comp1 in enumerate(component_names):
+            for comp2 in component_names[i+1:]:
+                # Connection probability based on component activities/levels
+                comp1_level = list(self.components[comp1].values())[0]
+                comp2_level = list(self.components[comp2].values())[0]
+                
+                connection_prob = (comp1_level + comp2_level) / 2
+                
+                if random.random() < connection_prob * 0.3:  # 30% max connection rate
+                    if comp1 not in self.autopoietic_network:
+                        self.autopoietic_network[comp1] = []
+                    if comp2 not in self.autopoietic_network[comp1]:
+                        self.autopoietic_network[comp1].append(comp2)
+                        connections_formed += 1
+        
+        return {
+            "stage": "network_formation",
+            "connections_formed": connections_formed,
+            "total_connections": sum(len(connections) for connections in self.autopoietic_network.values()),
+            "network_density": len(self.autopoietic_network) / len(self.components) if self.components else 0
+        }
+    
+    def _establish_boundaries(self) -> Dict[str, Any]:
+        """Establish system boundaries."""
+        # Boundary integrity depends on component stability
+        avg_stability = sum(
+            comp.get("stability", comp.get("integrity", list(comp.values())[0])) 
+            for comp in self.components.values()
+        ) / len(self.components)
+        
+        self.components["boundary"]["integrity"] = avg_stability
+        
+        # Permeability adjusts based on system needs
+        if self.components["substrate"]["availability"] < 0.3:
+            # Increase permeability to allow more substrate in
+            self.components["boundary"]["permeability"] = min(1.0,
+                self.components["boundary"]["permeability"] + 0.1)
+        elif self.components["product"]["concentration"] > 0.8:
+            # Decrease permeability to retain products
+            self.components["boundary"]["permeability"] = max(0.1,
+                self.components["boundary"]["permeability"] - 0.1)
+        
+        return {
+            "stage": "boundary_establishment",
+            "boundary_integrity": self.components["boundary"]["integrity"],
+            "boundary_permeability": self.components["boundary"]["permeability"],
+            "boundary_effectiveness": avg_stability
+        }
+    
+    def _create_self_reference(self) -> Dict[str, Any]:
+        """Create self-referential structures."""
+        # Self-reference emerges when the system can model itself
+        self_modeling_capability = 0.0
+        
+        # Check if network can represent itself
+        if len(self.autopoietic_network) >= 3:  # Minimum complexity for self-reference
+            network_complexity = sum(len(connections) for connections in self.autopoietic_network.values())
+            component_diversity = len(set(list(self.components.keys())))
+            
+            self_modeling_capability = min(1.0, (network_complexity * component_diversity) / 20.0)
+        
+        # Increase self-reference depth
+        if self_modeling_capability > 0.5:
+            self.self_reference_depth += 1
+        
+        return {
+            "stage": "self_reference_creation",
+            "self_modeling_capability": self_modeling_capability,
+            "self_reference_depth": self.self_reference_depth,
+            "reflexivity_achieved": self_modeling_capability > 0.7
+        }
+    
+    def _achieve_closure(self) -> Dict[str, Any]:
+        """Achieve autopoietic closure."""
+        # Closure achieved when system produces its own components
+        closure_indicators = []
+        
+        # Check if products can serve as catalysts (closure)
+        if (self.components["product"]["concentration"] > 0.6 and 
+            self.components["catalyst"]["activity"] > 0.5):
+            closure_indicators.append("catalytic_closure")
+        
+        # Check if network is self-maintaining
+        if (len(self.autopoietic_network) >= 2 and 
+            self.components["boundary"]["integrity"] > 0.7):
+            closure_indicators.append("structural_closure")
+        
+        # Check if self-reference enables self-production
+        if self.self_reference_depth >= 2:
+            closure_indicators.append("informational_closure")
+        
+        closure_level = len(closure_indicators) / 3.0  # Three types of closure
+        
+        return {
+            "stage": "autopoietic_closure",
+            "closure_indicators": closure_indicators,
+            "closure_level": closure_level,
+            "full_closure_achieved": closure_level >= 0.67
+        }
+    
+    def _update_autopoietic_network(self):
+        """Update the autopoietic network structure."""
+        # Remove weak connections
+        for component, connections in list(self.autopoietic_network.items()):
+            if component in self.components:
+                comp_strength = list(self.components[component].values())[0]
+                # Remove connections if component is weak
+                if comp_strength < 0.2:
+                    filtered_connections = [c for c in connections 
+                                          if c in self.components and 
+                                          list(self.components[c].values())[0] > 0.3]
+                    self.autopoietic_network[component] = filtered_connections
+    
+    def _check_emergence_transition(self) -> bool:
+        """Check if conditions are met for emergence transition."""
+        if self.emergence_stage == "initialization":
+            return sum(list(comp.values())[0] for comp in self.components.values()) > 2.0
+        elif self.emergence_stage == "organization":
+            return len(self.autopoietic_network) >= 2
+        elif self.emergence_stage == "closure":
+            return self.self_reference_depth >= 1
+        elif self.emergence_stage == "autopoiesis":
+            return self.closure_achieved
+        
+        return False
+    
+    def _advance_emergence_stage(self) -> Dict[str, Any]:
+        """Advance to the next emergence stage."""
+        previous_stage = self.emergence_stage
+        
+        if self.emergence_stage == "initialization":
+            self.emergence_stage = "organization"
+        elif self.emergence_stage == "organization":
+            self.emergence_stage = "closure"
+        elif self.emergence_stage == "closure":
+            self.emergence_stage = "autopoiesis"
+        
+        return {
+            "transition": f"{previous_stage} -> {self.emergence_stage}",
+            "timestamp": time.time()
+        }
+    
+    def _check_autopoietic_closure(self) -> bool:
+        """Check if full autopoietic closure is achieved."""
+        # Full closure requires all components to be self-produced
+        catalyst_self_produced = self.components["product"]["concentration"] > 0.5
+        boundary_maintained = self.components["boundary"]["integrity"] > 0.6
+        network_connected = len(self.autopoietic_network) >= 3
+        self_referential = self.self_reference_depth >= 2
+        
+        return all([catalyst_self_produced, boundary_maintained, 
+                   network_connected, self_referential])
+    
+    def get_autopoietic_status(self) -> Dict[str, Any]:
+        """Get current status of the autopoietic process."""
+        return {
+            "process_id": self.process_id,
+            "process_type": self.process_type,
+            "emergence_stage": self.emergence_stage,
+            "closure_achieved": self.closure_achieved,
+            "self_reference_depth": self.self_reference_depth,
+            "component_count": len(self.components),
+            "network_connections": sum(len(connections) for connections in self.autopoietic_network.values()),
+            "autopoietic_viability": self._calculate_viability()
+        }
+    
+    def _calculate_viability(self) -> float:
+        """Calculate overall autopoietic viability."""
+        if not self.components:
+            return 0.0
+        
+        # Average component strength
+        component_strength = sum(list(comp.values())[0] for comp in self.components.values()) / len(self.components)
+        
+        # Network connectivity factor
+        network_factor = min(1.0, len(self.autopoietic_network) / len(self.components))
+        
+        # Self-reference factor
+        self_ref_factor = min(1.0, self.self_reference_depth / 3.0)
+        
+        # Closure factor
+        closure_factor = 1.0 if self.closure_achieved else 0.5
+        
+        return (component_strength + network_factor + self_ref_factor + closure_factor) / 4.0
 
 
 class AgentOrchestrator:
