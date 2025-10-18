@@ -16,6 +16,8 @@ from typing import Any, Dict, List, Optional, Set, Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor, Future
 import threading
 from contextlib import contextmanager
+import math
+import random
 
 try:
     from .gpt4all import GPT4All
@@ -38,6 +40,12 @@ class AtomType(Enum):
     GOAL = "Goal"
     MEMORY = "Memory"
     ACTION = "Action"
+    BOOTSTRAP = "Bootstrap"
+    HOMEOSTATIC_STATE = "HomeostaticState"
+    INFERENCE_VORTEX = "InferenceVortex"
+    FEEDBACK_LOOP = "FeedbackLoop"
+    AUTOPOIETIC_PROCESS = "AutopoieticProcess"
+    METACOGNITIVE_REFLECTION = "MetacognitiveReflection"
 
 
 @dataclass
@@ -155,12 +163,79 @@ class Goal:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
+@dataclass
+class HomeostaticState:
+    """Represents homeostatic state for entropy resistance."""
+    agent_id: str = ""
+    entropy_level: float = 0.0
+    coherence_score: float = 1.0
+    stability_index: float = 1.0
+    last_update: float = field(default_factory=time.time)
+    
+    def update_entropy(self, action_variance: float, memory_coherence: float):
+        """Update entropy based on agent actions and memory coherence."""
+        # Higher variance increases entropy, coherent memory reduces it
+        entropy_delta = action_variance * 0.1 - memory_coherence * 0.05
+        self.entropy_level = max(0.0, min(1.0, self.entropy_level + entropy_delta))
+        
+        # Update stability and coherence inversely related to entropy
+        self.stability_index = 1.0 - self.entropy_level
+        self.coherence_score = max(0.1, self.coherence_score - entropy_delta * 0.5)
+        self.last_update = time.time()
+    
+    def needs_bootstrap(self) -> bool:
+        """Determine if agent needs bootstrap intervention."""
+        return self.entropy_level > 0.7 or self.coherence_score < 0.3
+
+
+@dataclass 
+class BootstrapMechanism:
+    """Foundational bootstrap mechanisms to combat entropic drift."""
+    target_agent_id: str = ""
+    bootstrap_type: str = "coherence_restoration"
+    activation_threshold: float = 0.7
+    intervention_strength: float = 0.5
+    last_activation: float = 0.0
+    
+    def should_activate(self, homeostatic_state: HomeostaticState) -> bool:
+        """Check if bootstrap mechanism should activate."""
+        if self.bootstrap_type == "coherence_restoration":
+            return homeostatic_state.coherence_score < self.activation_threshold
+        elif self.bootstrap_type == "entropy_regulation":
+            return homeostatic_state.entropy_level > self.activation_threshold
+        elif self.bootstrap_type == "stability_maintenance":
+            return homeostatic_state.stability_index < self.activation_threshold
+        return False
+    
+    def apply_intervention(self, agent) -> Dict[str, Any]:
+        """Apply bootstrap intervention to agent."""
+        self.last_activation = time.time()
+        
+        if self.bootstrap_type == "coherence_restoration":
+            # Reorganize agent's goals and memories for better coherence
+            agent.reorganize_cognitive_structures()
+            return {"intervention": "coherence_restored", "strength": self.intervention_strength}
+            
+        elif self.bootstrap_type == "entropy_regulation":
+            # Reset high-entropy patterns and establish order
+            agent.regulate_entropy()
+            return {"intervention": "entropy_regulated", "strength": self.intervention_strength}
+            
+        elif self.bootstrap_type == "stability_maintenance":
+            # Reinforce stable behavioral patterns
+            agent.reinforce_stability()
+            return {"intervention": "stability_reinforced", "strength": self.intervention_strength}
+        
+        return {"intervention": "unknown", "strength": 0.0}
+
+
 class Agent(ABC):
     """
     Base class for autonomous agents in the OpenCog-inspired system.
     
     Agents can perceive, think, and act in their environment using GPT4All models
-    for natural language processing and generation.
+    for natural language processing and generation. Enhanced with homeostatic
+    regulation and bootstrap mechanisms to resist entropic drift.
     """
     
     def __init__(self, 
@@ -178,6 +253,21 @@ class Agent(ABC):
         self.context: Dict[str, Any] = {}
         self.last_action_time = time.time()
         
+        # Homeostatic and bootstrap systems
+        self.homeostatic_state = HomeostaticState(agent_id=agent_id)
+        self.bootstrap_mechanisms: List[BootstrapMechanism] = [
+            BootstrapMechanism(agent_id, "coherence_restoration", 0.3, 0.7),
+            BootstrapMechanism(agent_id, "entropy_regulation", 0.7, 0.6),
+            BootstrapMechanism(agent_id, "stability_maintenance", 0.4, 0.5)
+        ]
+        self.action_history: List[str] = []
+        self.cognitive_variance = 0.0
+        
+        # Advanced cognitive systems
+        self.inference_vortex = InferenceVortex(agent_id=agent_id)
+        self.agentic_event_loop = AgenticEventLoop(agent_id=agent_id)
+        self.agentic_event_loop.add_vortex(self.inference_vortex)
+        
         # Register self in atomspace
         agent_atom = Atom(
             atom_type=AtomType.AGENT,
@@ -186,6 +276,15 @@ class Agent(ABC):
             metadata={"agent_type": self.__class__.__name__}
         )
         self.atomspace.add_atom(agent_atom)
+        
+        # Initialize homeostatic state in atomspace
+        homeostatic_atom = Atom(
+            atom_type=AtomType.HOMEOSTATIC_STATE,
+            name=f"HomeostaticState_{agent_id}",
+            value=self.homeostatic_state,
+            metadata={"agent_id": agent_id}
+        )
+        self.atomspace.add_atom(homeostatic_atom)
     
     def add_goal(self, description: str, priority: float = 1.0) -> Goal:
         """Add a new goal for the agent."""
@@ -231,6 +330,104 @@ class Agent(ABC):
             self.state = AgentState.ERROR
             return f"Error thinking: {e}"
     
+    def reorganize_cognitive_structures(self):
+        """Reorganize goals and memories for better coherence."""
+        # Sort goals by priority and relevance
+        self.goals.sort(key=lambda g: (g.priority, -g.progress), reverse=True)
+        
+        # Consolidate related memories
+        if len(self.memory) > 10:
+            # Keep most recent and important memories
+            important_memories = self.memory[-5:]  # Recent memories
+            self.memory = important_memories
+        
+        # Update homeostatic state
+        coherence_improvement = 0.2
+        self.homeostatic_state.coherence_score = min(1.0, 
+            self.homeostatic_state.coherence_score + coherence_improvement)
+        
+        self.remember(f"Reorganized cognitive structures - coherence improved")
+    
+    def regulate_entropy(self):
+        """Regulate entropy by establishing predictable patterns."""
+        # Reset high-variance behaviors
+        self.cognitive_variance *= 0.5
+        
+        # Establish regular patterns
+        if not self.goals:
+            self.add_goal("Maintain cognitive stability", priority=0.9)
+        
+        # Reduce entropy level
+        entropy_reduction = 0.3
+        self.homeostatic_state.entropy_level = max(0.0,
+            self.homeostatic_state.entropy_level - entropy_reduction)
+        
+        self.remember(f"Regulated entropy - variance reduced")
+    
+    def reinforce_stability(self):
+        """Reinforce stable behavioral patterns."""
+        # Increase priority of completed goals to reinforce success patterns
+        for goal in self.goals:
+            if goal.completed:
+                goal.priority = min(1.0, goal.priority + 0.1)
+        
+        # Improve stability index
+        stability_improvement = 0.25
+        self.homeostatic_state.stability_index = min(1.0,
+            self.homeostatic_state.stability_index + stability_improvement)
+        
+        self.remember(f"Reinforced stability patterns")
+    
+    def update_homeostatic_state(self, action: str):
+        """Update homeostatic state based on recent actions."""
+        self.action_history.append(action)
+        
+        # Keep limited action history
+        if len(self.action_history) > 20:
+            self.action_history = self.action_history[-15:]
+        
+        # Calculate action variance (consistency measure)
+        if len(self.action_history) >= 3:
+            action_types = [a.split(":")[0] if ":" in a else a for a in self.action_history[-5:]]
+            unique_actions = len(set(action_types))
+            total_actions = len(action_types)
+            variance = unique_actions / total_actions if total_actions > 0 else 0
+            self.cognitive_variance = variance
+        
+        # Calculate memory coherence
+        memory_coherence = 1.0
+        if len(self.memory) > 5:
+            # Simple coherence based on memory length stability
+            memory_coherence = min(1.0, 10.0 / len(self.memory))
+        
+        # Update homeostatic state
+        self.homeostatic_state.update_entropy(self.cognitive_variance, memory_coherence)
+    
+    def check_bootstrap_interventions(self) -> List[Dict[str, Any]]:
+        """Check and apply bootstrap interventions if needed."""
+        interventions = []
+        
+        for mechanism in self.bootstrap_mechanisms:
+            if mechanism.should_activate(self.homeostatic_state):
+                # Apply intervention
+                result = mechanism.apply_intervention(self)
+                interventions.append(result)
+                
+                # Log bootstrap intervention in atomspace
+                bootstrap_atom = Atom(
+                    atom_type=AtomType.BOOTSTRAP,
+                    name=f"Bootstrap_{mechanism.bootstrap_type}_{self.agent_id}",
+                    value=result,
+                    metadata={
+                        "agent_id": self.agent_id,
+                        "mechanism_type": mechanism.bootstrap_type,
+                        "timestamp": time.time()
+                    }
+                )
+                self.atomspace.add_atom(bootstrap_atom)
+        
+        return interventions
+    
     @abstractmethod
     def perceive(self) -> Dict[str, Any]:
         """Perceive the environment and return observations."""
@@ -247,18 +444,50 @@ class Agent(ABC):
         pass
     
     def step(self) -> Dict[str, Any]:
-        """Execute one cognitive step: perceive -> decide -> act."""
+        """Execute one cognitive step: perceive -> decide -> act with homeostatic monitoring."""
         observations = self.perceive()
-        action = self.decide(observations)
+        
+        # Process observations through inference vortex
+        self.agentic_event_loop.queue_event("perception", observations)
+        vortex_cycle = self.agentic_event_loop.process_cycle()
+        
+        # Extract enhanced observations from vortex processing
+        enhanced_observations = observations
+        if vortex_cycle["vortex_outputs"]:
+            # Use the most recent vortex output for decision making
+            latest_output = vortex_cycle["vortex_outputs"][-1]["output"]
+            enhanced_observations = {**observations, **latest_output}
+        
+        action = self.decide(enhanced_observations)
+        
+        result = {"status": "no_action", "observations": observations}
         
         if action:
             self.state = AgentState.ACTING
-            results = self.act(action)
+            action_results = self.act(action)
             self.state = AgentState.IDLE
             self.last_action_time = time.time()
-            return results
+            
+            # Update homeostatic state based on action
+            self.update_homeostatic_state(action)
+            
+            # Check for bootstrap interventions
+            interventions = self.check_bootstrap_interventions()
+            
+            result = {
+                **action_results,
+                "homeostatic_state": {
+                    "entropy": self.homeostatic_state.entropy_level,
+                    "coherence": self.homeostatic_state.coherence_score,
+                    "stability": self.homeostatic_state.stability_index
+                },
+                "bootstrap_interventions": interventions,
+                "vortex_cycle": vortex_cycle,
+                "inference_vortex_state": self.inference_vortex.get_vortex_state(),
+                "event_loop_state": self.agentic_event_loop.get_loop_status()
+            }
         
-        return {"status": "no_action", "observations": observations}
+        return result
 
 
 class ChatAgent(Agent):
@@ -393,9 +622,287 @@ class TaskAgent(Agent):
                 if clean_task:
                     self.task_queue.append(clean_task)
             
-            return {"action": "goal_planned", "goal": goal_desc, "tasks_created": len(task_lines)}
-        
         return {"action": "unknown", "result": "Action not recognized"}
+
+
+@dataclass
+class InferenceVortex:
+    """
+    Inference engine vortex for dynamic knowledge transformation.
+    
+    Creates spiraling patterns of inference that transform raw observations
+    into increasingly refined knowledge through metamorphic processes.
+    """
+    vortex_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    intensity: float = 1.0
+    rotation_direction: str = "clockwise"  # or "counterclockwise"
+    transformation_layers: List[str] = field(default_factory=list)
+    knowledge_spiral: List[Dict[str, Any]] = field(default_factory=list)
+    metamorphosis_stage: int = 0
+    
+    def __post_init__(self):
+        if not self.transformation_layers:
+            self.transformation_layers = [
+                "raw_perception",
+                "pattern_recognition", 
+                "conceptual_abstraction",
+                "relational_inference",
+                "meta_knowledge_synthesis"
+            ]
+    
+    def process_through_vortex(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Process data through the inference vortex layers."""
+        current_data = input_data
+        transformation_path = []
+        
+        for layer_idx, layer in enumerate(self.transformation_layers):
+            # Apply vortex transformation based on intensity and direction
+            spiral_position = layer_idx * self.intensity
+            if self.rotation_direction == "counterclockwise":
+                spiral_position *= -1
+            
+            # Transform data through current layer
+            transformed = self._apply_layer_transformation(layer, current_data, spiral_position)
+            
+            transformation_path.append({
+                "layer": layer,
+                "input": current_data,
+                "output": transformed,
+                "spiral_position": spiral_position
+            })
+            
+            current_data = transformed
+        
+        # Store in knowledge spiral
+        self.knowledge_spiral.append({
+            "timestamp": time.time(),
+            "transformation_path": transformation_path,
+            "final_output": current_data,
+            "metamorphosis_stage": self.metamorphosis_stage
+        })
+        
+        # Increment metamorphosis stage
+        self.metamorphosis_stage += 1
+        if self.metamorphosis_stage >= len(self.transformation_layers):
+            self.metamorphosis_stage = 0  # Reset for new cycle
+        
+        return current_data
+    
+    def _apply_layer_transformation(self, layer: str, data: Dict[str, Any], 
+                                  spiral_position: float) -> Dict[str, Any]:
+        """Apply transformation specific to each vortex layer."""
+        if layer == "raw_perception":
+            # Add spiral distortion to raw data
+            return {
+                **data,
+                "spiral_enhancement": spiral_position,
+                "perception_clarity": 1.0 + math.sin(spiral_position) * 0.1
+            }
+        
+        elif layer == "pattern_recognition":
+            # Identify recurring patterns in the data
+            patterns = []
+            for key, value in data.items():
+                if isinstance(value, (int, float)):
+                    # Simple pattern: oscillation detection
+                    patterns.append(f"pattern_{key}_{math.cos(spiral_position):.2f}")
+            
+            return {
+                **data,
+                "recognized_patterns": patterns,
+                "pattern_confidence": abs(math.cos(spiral_position))
+            }
+        
+        elif layer == "conceptual_abstraction":
+            # Abstract concepts from patterns
+            concepts = []
+            if "recognized_patterns" in data:
+                for pattern in data["recognized_patterns"]:
+                    concepts.append(f"concept_from_{pattern}")
+            
+            return {
+                **data,
+                "abstract_concepts": concepts,
+                "abstraction_level": spiral_position % 1.0
+            }
+        
+        elif layer == "relational_inference":
+            # Infer relationships between concepts
+            relationships = []
+            if "abstract_concepts" in data:
+                concepts = data["abstract_concepts"]
+                for i, concept1 in enumerate(concepts):
+                    for concept2 in concepts[i+1:]:
+                        relationships.append(f"relation_{concept1}_to_{concept2}")
+            
+            return {
+                **data,
+                "inferred_relationships": relationships,
+                "relational_complexity": len(relationships)
+            }
+        
+        elif layer == "meta_knowledge_synthesis":
+            # Synthesize meta-knowledge from all layers
+            meta_knowledge = {
+                "synthesis_timestamp": time.time(),
+                "spiral_completion": spiral_position,
+                "knowledge_density": len(str(data)),
+                "transformation_depth": len(self.transformation_layers),
+                "vortex_cycle": self.metamorphosis_stage
+            }
+            
+            return {
+                **data,
+                "meta_knowledge": meta_knowledge,
+                "synthesis_complete": True
+            }
+        
+        return data
+    
+    def get_vortex_state(self) -> Dict[str, Any]:
+        """Get current state of the inference vortex."""
+        return {
+            "vortex_id": self.vortex_id,
+            "intensity": self.intensity,
+            "direction": self.rotation_direction,
+            "metamorphosis_stage": self.metamorphosis_stage,
+            "knowledge_spiral_depth": len(self.knowledge_spiral),
+            "transformation_layers": len(self.transformation_layers)
+        }
+
+
+@dataclass
+class AgenticEventLoop:
+    """
+    Dynamic agentic event loop that drives inference vortices into metamorphosis.
+    
+    Manages the temporal dynamics of agent cognition, orchestrating
+    the transformation cycles that enable agent evolution.
+    """
+    loop_id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    agent_id: str = ""
+    cycle_frequency: float = 1.0  # Hz
+    metamorphosis_threshold: int = 5
+    event_queue: List[Dict[str, Any]] = field(default_factory=list)
+    vortices: List[InferenceVortex] = field(default_factory=list)
+    metamorphosis_count: int = 0
+    loop_state: str = "initializing"  # initializing, running, metamorphing, evolved
+    
+    def add_vortex(self, vortex: InferenceVortex):
+        """Add an inference vortex to the event loop."""
+        self.vortices.append(vortex)
+    
+    def queue_event(self, event_type: str, data: Dict[str, Any]):
+        """Queue an event for processing in the next cycle."""
+        event = {
+            "event_id": str(uuid.uuid4()),
+            "type": event_type,
+            "data": data,
+            "timestamp": time.time(),
+            "processed": False
+        }
+        self.event_queue.append(event)
+    
+    def process_cycle(self) -> Dict[str, Any]:
+        """Process one complete agentic event loop cycle."""
+        cycle_start = time.time()
+        processed_events = []
+        vortex_outputs = []
+        
+        # Set loop state
+        if self.loop_state == "initializing":
+            self.loop_state = "running"
+        
+        # Process queued events through vortices
+        for event in self.event_queue:
+            if not event["processed"]:
+                # Route event through all vortices
+                event_outputs = []
+                for vortex in self.vortices:
+                    output = vortex.process_through_vortex(event["data"])
+                    event_outputs.append({
+                        "vortex_id": vortex.vortex_id,
+                        "output": output
+                    })
+                
+                event["processed"] = True
+                event["vortex_outputs"] = event_outputs
+                processed_events.append(event)
+                vortex_outputs.extend(event_outputs)
+        
+        # Clear processed events
+        self.event_queue = [e for e in self.event_queue if not e["processed"]]
+        
+        # Check for metamorphosis conditions
+        metamorphosis_triggered = self._check_metamorphosis_conditions()
+        
+        if metamorphosis_triggered:
+            self.loop_state = "metamorphing"
+            metamorphosis_result = self._trigger_metamorphosis()
+        else:
+            metamorphosis_result = None
+        
+        cycle_duration = time.time() - cycle_start
+        
+        return {
+            "cycle_id": str(uuid.uuid4()),
+            "processed_events": len(processed_events),
+            "vortex_outputs": vortex_outputs,
+            "metamorphosis_triggered": metamorphosis_triggered,
+            "metamorphosis_result": metamorphosis_result,
+            "cycle_duration": cycle_duration,
+            "loop_state": self.loop_state,
+            "cycle_frequency": self.cycle_frequency
+        }
+    
+    def _check_metamorphosis_conditions(self) -> bool:
+        """Check if conditions are met for triggering metamorphosis."""
+        # Count vortices that have completed sufficient cycles
+        mature_vortices = sum(1 for v in self.vortices 
+                             if len(v.knowledge_spiral) >= self.metamorphosis_threshold)
+        
+        # Trigger metamorphosis if enough vortices are mature
+        return mature_vortices >= len(self.vortices) * 0.6  # 60% threshold
+    
+    def _trigger_metamorphosis(self) -> Dict[str, Any]:
+        """Trigger metamorphosis transformation of the agent."""
+        self.metamorphosis_count += 1
+        
+        # Collect knowledge from all vortices
+        collective_knowledge = []
+        for vortex in self.vortices:
+            if vortex.knowledge_spiral:
+                collective_knowledge.extend(vortex.knowledge_spiral)
+        
+        # Reset vortices for new cycle
+        for vortex in self.vortices:
+            vortex.knowledge_spiral = []
+            vortex.metamorphosis_stage = 0
+            # Slightly increase intensity for evolution
+            vortex.intensity = min(2.0, vortex.intensity * 1.1)
+        
+        # Mark as evolved
+        self.loop_state = "evolved"
+        
+        return {
+            "metamorphosis_id": str(uuid.uuid4()),
+            "metamorphosis_count": self.metamorphosis_count,
+            "knowledge_integrated": len(collective_knowledge),
+            "vortices_evolved": len(self.vortices),
+            "evolution_timestamp": time.time()
+        }
+    
+    def get_loop_status(self) -> Dict[str, Any]:
+        """Get current status of the agentic event loop."""
+        return {
+            "loop_id": self.loop_id,
+            "state": self.loop_state,
+            "metamorphosis_count": self.metamorphosis_count,
+            "active_vortices": len(self.vortices),
+            "queued_events": len(self.event_queue),
+            "cycle_frequency": self.cycle_frequency
+        }
 
 
 class AgentOrchestrator:
