@@ -10,7 +10,6 @@ import sys
 import os
 
 # Import the opencog_orchestrator module directly without gpt4all dependencies
-import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), 'gpt4all'))
 
 # Import directly from the module file
